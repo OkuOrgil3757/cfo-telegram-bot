@@ -122,7 +122,7 @@ def main():
     init_db()
     token = os.getenv("TELEGRAM_TOKEN")
     if not token:
-        raise ValueError("TELEGRAM_TOKEN not set in .env")
+        raise ValueError("TELEGRAM_TOKEN environment variable is not set")
 
     app = ApplicationBuilder().token(token).build()
 

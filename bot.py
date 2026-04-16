@@ -104,7 +104,7 @@ async def chat(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.chat.send_action("typing")
 
     from groq import Groq
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    client = Groq(api_key=os.getenv("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"))
     system = SYSTEM_PROMPT + (f"\n\n{db_context}" if db_context else "")
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",

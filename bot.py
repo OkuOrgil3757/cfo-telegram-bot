@@ -1,5 +1,5 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters, CallbackQueryHandler
 from dotenv import load_dotenv
 from utils.groq_client import ask, ask_with_history
 from utils.db import get_conn
@@ -18,48 +18,81 @@ from modules import (
     property_appraiser,
     credit_clerk,
     brainstormer,
+    extras,
 )
 
 load_dotenv()
 
 
 async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [
+            InlineKeyboardButton("📊 Snapshot", callback_data="cmd_snapshot"),
+            InlineKeyboardButton("📋 History", callback_data="cmd_history"),
+        ],
+        [
+            InlineKeyboardButton("📉 Budget", callback_data="cmd_budget"),
+            InlineKeyboardButton("🔍 Audit", callback_data="cmd_audit"),
+        ],
+        [
+            InlineKeyboardButton("📈 Invest", callback_data="cmd_invest"),
+            InlineKeyboardButton("⚠️ Risk", callback_data="cmd_risk"),
+        ],
+        [
+            InlineKeyboardButton("💱 FX Convert", callback_data="cmd_fx"),
+            InlineKeyboardButton("🍽️ Bill Split", callback_data="cmd_split"),
+        ],
+        [
+            InlineKeyboardButton("🎯 Goals", callback_data="cmd_goalstatus"),
+            InlineKeyboardButton("💡 Brainstorm", callback_data="cmd_brainstorm"),
+        ],
+        [
+            InlineKeyboardButton("📒 Ledger", callback_data="cmd_ledger"),
+            InlineKeyboardButton("🏦 Loan Calc", callback_data="cmd_loan"),
+        ],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "👋 *CFO Bot — Your Financial Expert*\n\n"
-        "📊 *Financial Manager*\n"
-        "  /snapshot — monthly health report\n"
-        "  /log — log income or expense\n"
-        "  /history — recent transactions\n"
-        "  /decide — is this decision sound?\n\n"
-        "🔍 *Accountant*\n"
-        "  /audit — P&L + anomaly check\n"
-        "  /importcsv — bulk import transactions\n\n"
-        "📉 *Budget Analyst*\n"
-        "  /setbudget — set category limit\n"
-        "  /budget — actuals vs budget\n\n"
-        "📈 *Investment Analyst*\n"
-        "  /invest — stock research report\n"
-        "  /compare — compare two stocks\n"
-        "  /portfolioadd — add position\n\n"
-        "⚠️ *Risk Specialist*\n"
-        "  /risk — portfolio risk analysis\n\n"
-        "🏦 *Credit & Loans*\n"
-        "  /creditcheck — creditworthiness\n"
-        "  /loan — payment & amortization\n"
-        "  /compareloans — compare two loans\n\n"
-        "🎯 *Financial Advisor*\n"
-        "  /advise — holistic advice\n"
-        "  /ontrack — savings rate check\n\n"
-        "🏠 *Other*\n"
-        "  /appraise — asset valuation\n"
-        "  /owe /owed /settle /ledger — debt ledger\n\n"
-        "💡 *Brainstorm*\n"
-        "  /brainstorm <topic> — generate financial ideas\n"
-        "  /income\\_ideas — new income streams\n"
-        "  /costcuts — spending cuts\n"
-        "  /goals — 3/6/12-month roadmap",
-        parse_mode="Markdown"
+        "👋 *CFO Bot — Your Personal Financial Expert*\n\n"
+        "I have 11 financial expert roles and 30+ commands.\n"
+        "Tap a button below or just type any financial question.\n\n"
+        "📊 /snapshot  📋 /history  /log  /decide\n"
+        "🔍 /audit  /importcsv\n"
+        "📉 /setbudget  /budget\n"
+        "📈 /invest  /compare  /portfolioadd\n"
+        "⚠️ /risk\n"
+        "🏦 /creditcheck  /loan  /compareloans\n"
+        "🎯 /advise  /ontrack\n"
+        "🏠 /appraise\n"
+        "📒 /owe  /owed  /settle  /ledger\n"
+        "💡 /brainstorm  /income\\_ideas  /costcuts  /goals\n"
+        "🆕 /split  /fx  /setgoal  /saveto  /goalstatus",
+        parse_mode="Markdown",
+        reply_markup=reply_markup
     )
+
+
+async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Handle inline keyboard button taps — show usage hint for each command."""
+    query = update.callback_query
+    await query.answer()
+    hints = {
+        "cmd_snapshot": "📊 Send /snapshot to see your monthly financial health report.",
+        "cmd_history":  "📋 Send /history or /history 20 to see your last transactions.",
+        "cmd_budget":   "📉 Send /budget to see actuals vs budget.\nSet limits with /setbudget food 200000",
+        "cmd_audit":    "🔍 Send /audit to run a full P&L audit with anomaly detection.",
+        "cmd_invest":   "📈 Send /invest AAPL (or any ticker) for a research report.",
+        "cmd_risk":     "⚠️ Send /risk to analyse your portfolio risk.\nOptional: /risk market crash 30%",
+        "cmd_fx":       "💱 Send /fx 100 USD MNT to convert currencies.\nUses live exchange rates.",
+        "cmd_split":    "🍽️ Send /split 90000 Alice Bob Charlie to split a bill.\nOr /split 90000 3 for equal split.",
+        "cmd_goalstatus": "🎯 Send /goalstatus to see all savings goals.\nCreate one: /setgoal MacBook 3000000",
+        "cmd_brainstorm": "💡 Send /brainstorm income or /brainstorm cuts for personalised ideas.",
+        "cmd_ledger":   "📒 Send /ledger to see who owes you and who you owe.\n/owe Bob 50000  |  /owed Alice 20000",
+        "cmd_loan":     "🏦 Send /loan 10000000 12 5 (principal rate years) for payment breakdown.",
+    }
+    text = hints.get(query.data, "Use the command directly in chat.")
+    await query.edit_message_reply_markup(reply_markup=None)
+    await query.message.reply_text(text)
 
 
 SYSTEM_PROMPT = """You are a personal CFO bot — a financial expert with 10 roles:
@@ -132,6 +165,10 @@ def main():
     property_appraiser.register(app)
     credit_clerk.register(app)
     brainstormer.register(app)
+    extras.register(app)
+
+    # inline keyboard button taps
+    app.add_handler(CallbackQueryHandler(button_handler))
 
     # free-text AI chat — catches any plain message that isn't a command
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))

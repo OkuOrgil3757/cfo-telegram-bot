@@ -56,5 +56,16 @@ def init_db():
             UNIQUE(user_id, ticker)
         )
     """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            target REAL NOT NULL,
+            saved REAL NOT NULL DEFAULT 0,
+            created_date TEXT NOT NULL,
+            UNIQUE(user_id, name)
+        )
+    """)
     conn.commit()
     conn.close()

@@ -120,7 +120,7 @@ async def chat(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 def main():
     init_db()
-    token = os.getenv("TELEGRAM_TOKEN")
+    token = os.getenv("8531141736:AAEDbnK34LyW40rdj3ZJZmBRcniAWCIcnYU")
     if not token:
         raise ValueError("TELEGRAM_TOKEN environment variable is not set")
 

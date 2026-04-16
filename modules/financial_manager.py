@@ -98,6 +98,33 @@ def register(app):
         analysis = ask(FINANCIAL_MANAGER, question, context)
         await update.message.reply_text(f"💼 *CFO Analysis*\n\n{analysis}", parse_mode="Markdown")
 
+    async def history(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+        # /history [N]  — show last N transactions (default 10, max 30)
+        try:
+            limit = min(int(ctx.args[0]), 30) if ctx.args else 10
+        except ValueError:
+            limit = 10
+        uid = str(update.effective_user.id)
+        conn = get_conn()
+        rows = conn.execute(
+            "SELECT date, type, category, amount, description FROM transactions "
+            "WHERE user_id=? ORDER BY id DESC LIMIT ?", (uid, limit)
+        ).fetchall()
+        conn.close()
+        if not rows:
+            await update.message.reply_text("No transactions yet. Use /log to add one.")
+            return
+        lines = []
+        for r in rows:
+            icon = "💰" if r["type"] == "income" else "💸"
+            desc = f" ({r['description']})" if r["description"] else ""
+            lines.append(f"{icon} `{r['date']}` {r['category']} — *{r['amount']:,.0f}*{desc}")
+        await update.message.reply_text(
+            f"📋 *Last {len(rows)} Transactions*\n\n" + "\n".join(lines),
+            parse_mode="Markdown"
+        )
+
     app.add_handler(CommandHandler("snapshot", snapshot))
     app.add_handler(CommandHandler("log", log_tx))
     app.add_handler(CommandHandler("decide", decide))
+    app.add_handler(CommandHandler("history", history))

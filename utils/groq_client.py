@@ -24,3 +24,15 @@ def ask(system_prompt: str, user_message: str, context: str = "") -> str:
         temperature=0.3,
     )
     return response.choices[0].message.content
+
+
+def ask_with_history(system_prompt: str, history: list[dict]) -> str:
+    """Multi-turn chat with full message history. history is list of {role, content} dicts."""
+    client = get_client()
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "system", "content": system_prompt}] + history,
+        max_tokens=1024,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content

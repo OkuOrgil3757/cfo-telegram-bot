@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 from dotenv import load_dotenv
-from utils.groq_client import ask
+from utils.groq_client import ask, ask_with_history
 from utils.db import get_conn
 import os
 
@@ -29,6 +29,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "📊 *Financial Manager*\n"
         "  /snapshot — monthly health report\n"
         "  /log — log income or expense\n"
+        "  /history — recent transactions\n"
         "  /decide — is this decision sound?\n\n"
         "🔍 *Accountant*\n"
         "  /audit — P&L + anomaly check\n"
@@ -103,16 +104,8 @@ async def chat(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     await update.message.chat.send_action("typing")
 
-    from groq import Groq
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
     system = SYSTEM_PROMPT + (f"\n\n{db_context}" if db_context else "")
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "system", "content": system}] + chat_histories[uid],
-        max_tokens=1024,
-        temperature=0.3,
-    )
-    reply = response.choices[0].message.content
+    reply = ask_with_history(system, chat_histories[uid])
     chat_histories[uid].append({"role": "assistant", "content": reply})
 
     await update.message.reply_text(reply)
